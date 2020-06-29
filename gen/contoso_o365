@@ -16,7 +16,7 @@ sub saveFacilityIdToFile;
 sub saveUsersToFile;
 sub saveGroupsToFile;
 
-our $SERVICE_NAME     = "o365_mu";
+our $SERVICE_NAME     = "contoso_o365";
 our $PROTOCOL_VERSION = "3.0.0";
 my $SCRIPT_VERSION = "3.0.0";
 
@@ -38,6 +38,7 @@ our $A_UF_O365_MAIL_FORWARD;                 *A_UF_O365_MAIL_FORWARD =          
 our $A_UF_O365_ARCHIVE;                      *A_UF_O365_ARCHIVE =                      \'urn:perun:user_facility:attribute-def:def:o365MailInPlaceArchive';
 our $A_UF_O365_STORE_AND_FORWARD;            *A_UF_O365_STORE_AND_FORWARD =            \'urn:perun:user_facility:attribute-def:def:o365MailStoreAndForward';
 our $A_UF_O365_LICENCE;                      *A_UF_O365_LICENCE =                      \'urn:perun:user_facility:attribute-def:def:o365Licence';
+our $A_UF_O365_LANGUAGE;                     *A_UF_O365_LANGUAGE =                     \'urn:perun:user_facility:attribute-def:def:o365PreferredLanguage';
 our $A_R_IS_FOR_O365_GROUP;                  *A_R_IS_FOR_O365_GROUP =                  \'urn:perun:resource:attribute-def:def:isForO365Group';
 our $A_F_ID;                                 *A_F_ID =                                 \'urn:perun:facility:attribute-def:core:id';
 our $A_R_O365_RES_NAME;                      *A_R_O365_RES_NAME =                      \'urn:perun:resource:attribute-def:def:o365ResourceName';
@@ -100,6 +101,7 @@ our $MAIL_FORWARD_TEXT = "mailForward";
 our $ARCHIVE_TEXT = "archive";
 our $STORE_AND_FORWARD_TEXT = "storeAndForward";
 our $EMAIL_ADDRESSES = "emailAddresses";
+our $PREFERED_LANGUAGE = "preferedLanguage";
 
 #Default forwarding domain for MU
 our $DEFAULT_FORWARDING_DOMAIN = '@mo.muni.cz';
@@ -252,7 +254,7 @@ sub processResourceMail {
 		}
 	}
 
-  $resourceMails->{$resName}->{$RES_DELEGATES_TEXT} =  join(' ', sort @resDelegates);
+    $resourceMails->{$resName}->{$RES_DELEGATES_TEXT} =  join(' ', sort @resDelegates);
 	$resourceMails->{$resName}->{$RES_BOOK_IN_POLICY_TEXT} = join(' ', sort @resBookInPolicy);
 	$resourceMails->{$resName}->{$RES_REQUEST_IN_POLICY_TEXT} = join(' ', sort @resReqInPolicy);
 	$resourceMails->{$resName}->{$RES_REQUEST_OUT_OF_POLICY_TEXT} = join(' ', sort @resReqOutOfPolicy);
@@ -280,20 +282,21 @@ sub processResourceMember {
 
 		my $archive = $memberAttributes{$A_UF_O365_ARCHIVE};
 		my $storeAndForward = $memberAttributes{$A_UF_O365_STORE_AND_FORWARD};
+		my $preferedLanguage = $memberAttributes{$A_UF_O365_LANGUAGE};
 		my @emailsArray = ();
 		if(defined($memberAttributes{$A_U_O365_MAIL_ADDRS})) {
 			@emailsArray = @{$memberAttributes{$A_U_O365_MAIL_ADDRS}};
 		} else {
 			warn "Can't find emails for user with UCO: $UCO \n";
 		}
-		my $emailsString = join(',', sort @emailsArray);
 
 		unless($users->{$UCO}) {
 			$users->{$UCO}->{$UPN_TEXT} = $UCO . "@" . $domainName;
 			$users->{$UCO}->{$MAIL_FORWARD_TEXT} = $mailForward ? $mailForward : "";
 			$users->{$UCO}->{$ARCHIVE_TEXT} = $archive ? "1" : "0";
 			$users->{$UCO}->{$STORE_AND_FORWARD_TEXT} = $storeAndForward ? "1" : "0";
-			$users->{$UCO}->{$EMAIL_ADDRESSES} = $emailsString;
+			$users->{$UCO}->{$EMAIL_ADDRESSES} = \@emailsArray;
+			$users->{$UCO}->{$PREFERED_LANGUAGE} = $preferedLanguage;
 		}
 }
 
@@ -349,6 +352,8 @@ sub saveUsersToFile {
         $user->{"archive"} = $usersData->{$UCO}->{$ARCHIVE_TEXT};
         $user->{"deliverToMailboxAndForward"} = $usersData->{$UCO}->{$STORE_AND_FORWARD_TEXT};
         $user->{"emailAddresses"} = $usersData->{$UCO}->{$EMAIL_ADDRESSES};
+        $user->{"language"} = $usersData->{$UCO}->{$PREFERED_LANGUAGE};
+        #$user->{"timeZone"} = $usersData->{$UCO}->{$TIMEZONE};
         push @output, $user;
 	}
 
@@ -368,8 +373,8 @@ sub saveGroupsToFile {
 
 	foreach my $adName (sort keys %$groupsData) {
         $group = {};
-		my @contacts = sort keys %{$groupsData->{$adName}};
-		unless($contacts) { $contacts = ""; }
+		my @contacts = ();
+		@contacts = sort keys %{$groupsData->{$adName}};
         $group->{"groupName"} = $adName;
         $group->{"sendAs"} = \@contacts;
         push @output, $group;
@@ -399,10 +404,9 @@ sub saveResourceMailsToFile {
 	my $fileName = shift;
 	my $resourceMailsData = shift;
     my @output = ();
-    my $item;
-
+    
 	foreach my $resourceMailName (sort keys %$resourceMailsData) {
-        $item = {};
+		my $item = {};
 
 		$item->{"Name"} = $resourceMailsData->{$resourceMailName}->{$RES_NAME_TEXT};
 		$item->{"Alias"} = $resourceMailsData->{$resourceMailName}->{$RES_ALIAS_TEXT};
@@ -411,7 +415,7 @@ sub saveResourceMailsToFile {
 		$item->{"Type"} = $resourceMailsData->{$resourceMailName}->{$RES_TYPE_TEXT};
 		$item->{"ResourceCapacity"} = $resourceMailsData->{$resourceMailName}->{$RES_CAPACITY_TEXT};
 		$item->{"AdditionalResponse"} = $resourceMailsData->{$resourceMailName}->{$RES_ADDITIONAL_RESPONSE_TEXT};
-		$item->{"PLACEHOLDER_TODO"} = $resourceMailsData->{$resourceMailName}->{$RES_EXT_MEETING_MSG_TEXT};
+		$item->{"ProcessExternalMeetingMessages "} = $resourceMailsData->{$resourceMailName}->{$RES_EXT_MEETING_MSG_TEXT};
 		$item->{"AllowConflicts"} = $resourceMailsData->{$resourceMailName}->{$RES_ALLOW_CONFLICTS_TEXT};
 		$item->{"BookingWindowInDays"} = $resourceMailsData->{$resourceMailName}->{$RES_BOOKING_WINDOW_TEXT};
 		$item->{"ConflictPercentageAllowed"} = $resourceMailsData->{$resourceMailName}->{$RES_PERCENTAGE_ALLOWED_TEXT};
@@ -432,7 +436,7 @@ sub saveResourceMailsToFile {
 		$item->{"RequestInPolicy"} = $resourceMailsData->{$resourceMailName}->{$RES_REQUEST_IN_POLICY_TEXT};
 		$item->{"RequestOutOfPolicy"} = $resourceMailsData->{$resourceMailName}->{$RES_REQUEST_OUT_OF_POLICY_TEXT};
 
-        push @output, $item;
+        push @output, \$item;
 	}
 
     open FILE,">:encoding(UTF-8)","$fileName" or die "Cannot open $fileName: $! \n";

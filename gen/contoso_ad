@@ -10,7 +10,7 @@ sub processMembers;
 sub processExtendedLicenses;
 sub processGroups;
 
-local $::SERVICE_NAME = "ad_mu";
+local $::SERVICE_NAME = "contoso_ad";
 local $::PROTOCOL_VERSION = "3.0.0";
 my $SCRIPT_VERSION = "3.0.0";
 
