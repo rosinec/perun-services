@@ -436,7 +436,7 @@ sub saveResourceMailsToFile {
 		$item->{"RequestInPolicy"} = $resourceMailsData->{$resourceMailName}->{$RES_REQUEST_IN_POLICY_TEXT};
 		$item->{"RequestOutOfPolicy"} = $resourceMailsData->{$resourceMailName}->{$RES_REQUEST_OUT_OF_POLICY_TEXT};
 
-        push @output, \$item;
+        push @output, $item;
 	}
 
     open FILE,">:encoding(UTF-8)","$fileName" or die "Cannot open $fileName: $! \n";
