@@ -15,7 +15,7 @@ my $data = perunServicesInit::getDataWithGroups;
 
 {
     local @ARGV = ("o365_ad_contoso", $DIRECTORY, $data);
-    do './contoso_ad2';
+    do './contoso_ad';
     do './contoso_o365';
 }
 

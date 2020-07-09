@@ -29,7 +29,6 @@ my $fileNameGroups = "$DIRECTORY/$SERVICE_NAME"."_groups.json";  # printed for e
 my $fileNameOus = "$DIRECTORY/$SERVICE_NAME"."_ous.json";
 my $baseDnFileName = "$DIRECTORY/baseDN";
 my $baseDnFileNameGroups = "$DIRECTORY/baseDNGroups";
-my $fileNameFID = "$DIRECTORY/facilityId";
 
 
 # Constants
@@ -110,10 +109,6 @@ close(FILE);
 
 open FILE,">:encoding(UTF-8)","$baseDnFileNameGroups" or die "Cannot open $baseDnFileNameGroups: $! \n";
 print FILE $baseDNGroups;
-close(FILE);
-
-open FILE,">:encoding(UTF-8)","$fileNameFID" or die "Cannot open $fileNameFID: $! \n";
-print FILE $facilityAttributes{$A_F_ID};
 close(FILE);
 
 #
