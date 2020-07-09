@@ -12,17 +12,20 @@ sub processResource;
 sub processGroup;
 sub processResourceMail;
 sub saveResourceMailsToFile;
-sub saveFacilityIdToFile;
 sub saveUsersToFile;
 sub saveGroupsToFile;
 
-our $SERVICE_NAME     = "contoso_o365";
-our $PROTOCOL_VERSION = "3.0.0";
-my $SCRIPT_VERSION = "3.0.0";
+#our $SERVICE_NAME     = "contoso_o365";
+#our $PROTOCOL_VERSION = "3.0.0";
+#my $SCRIPT_VERSION = "3.0.0";
 
-perunServicesInit::init;
-my $DIRECTORY = perunServicesInit::getDirectory;
-my $data      = perunServicesInit::getDataWithGroups;
+#perunServicesInit::init;
+#my $DIRECTORY = perunServicesInit::getDirectory;
+my $SERVICE_NAME = "o365_mu";
+my $DIRECTORY = $ARGV[1];
+my $data = $ARGV[2];
+print "Running contoso_o365 sn: " . $SERVICE_NAME . "\n";
+#my $data      = perunServicesInit::getDataWithGroups;
 
 #-------------------------------------------------------------------------
 # CONSTANTS AND DEFINITIONS
@@ -38,7 +41,7 @@ our $A_UF_O365_MAIL_FORWARD;                 *A_UF_O365_MAIL_FORWARD =          
 our $A_UF_O365_ARCHIVE;                      *A_UF_O365_ARCHIVE =                      \'urn:perun:user_facility:attribute-def:def:o365MailInPlaceArchive';
 our $A_UF_O365_STORE_AND_FORWARD;            *A_UF_O365_STORE_AND_FORWARD =            \'urn:perun:user_facility:attribute-def:def:o365MailStoreAndForward';
 our $A_UF_O365_LICENCE;                      *A_UF_O365_LICENCE =                      \'urn:perun:user_facility:attribute-def:def:o365Licence';
-our $A_UF_O365_LANGUAGE;                     *A_UF_O365_LANGUAGE =                     \'urn:perun:user_facility:attribute-def:def:o365PreferredLanguage';
+our $A_U_F_O365_PREFERRED_LANGUAGE;          *A_U_F_O365_PREFERRED_LANGUAGE =          \'urn:perun:user_facility:attribute-def:def:o365PreferredLanguage';
 our $A_R_IS_FOR_O365_GROUP;                  *A_R_IS_FOR_O365_GROUP =                  \'urn:perun:resource:attribute-def:def:isForO365Group';
 our $A_F_ID;                                 *A_F_ID =                                 \'urn:perun:facility:attribute-def:core:id';
 our $A_R_O365_RES_NAME;                      *A_R_O365_RES_NAME =                      \'urn:perun:resource:attribute-def:def:o365ResourceName';
@@ -102,6 +105,7 @@ our $ARCHIVE_TEXT = "archive";
 our $STORE_AND_FORWARD_TEXT = "storeAndForward";
 our $EMAIL_ADDRESSES = "emailAddresses";
 our $PREFERED_LANGUAGE = "preferedLanguage";
+our $TIMEZONE = "timezone";
 
 #Default forwarding domain for MU
 our $DEFAULT_FORWARDING_DOMAIN = '@mo.muni.cz';
@@ -139,21 +143,19 @@ foreach my $resource ( $data->getChildElements ) {
 # SAVE ALL REQUIRED DATA TO FILES
 #-------------------------------------------------------------------------
 
-my $usersFileName = "$DIRECTORY/$::SERVICE_NAME-users.json";
-my $groupsFileName = "$DIRECTORY/$::SERVICE_NAME-groups.json";
-my $resourceMailsFileName = "$DIRECTORY/$::SERVICE_NAME-resource-mails.json";
-my $facilityIdFileName = "$DIRECTORY/$::SERVICE_NAME-facilityId";
+my $usersFileName = "$DIRECTORY/$SERVICE_NAME" . "_users.json";
+my $groupsFileName = "$DIRECTORY/$SERVICE_NAME" . "_groups.json";
+my $resourceMailsFileName = "$DIRECTORY/$SERVICE_NAME" . "_resource-mails.json";
 
 saveUsersToFile $usersFileName, $users;
 saveGroupsToFile $groupsFileName, $groups;
 saveResourceMailsToFile $resourceMailsFileName, $resourceMails;
-saveFacilityIdToFile $facilityIdFileName, $facilityId;
 
 #-------------------------------------------------------------------------
 # FINALIZING
 #-------------------------------------------------------------------------
 
-perunServicesInit::finalize;
+#perunServicesInit::finalize;
 
 #-------------------------------------------------------------------------
 #-------------------------------------------------------------------------
@@ -203,31 +205,32 @@ sub processResourceMail {
 
 	my %resourceAttributes = attributesToHash $resourceData->getAttributes;
 	my $resName = $resourceAttributes{$A_R_O365_RES_NAME};
+	my @workdays = ();
 
 	#process all resource mail attributes
 	$resourceMails->{$resName}->{$RES_NAME_TEXT} = $resName;
-	$resourceMails->{$resName}->{$RES_ALIAS_TEXT}  = $resourceAttributes{$A_R_O365_RES_ALIAS} ? $resourceAttributes{$A_R_O365_RES_ALIAS} : "";
-	$resourceMails->{$resName}->{$RES_EMAIL_ADDRESES_TEXT} = $resourceAttributes{$A_R_O365_RES_EMAIL_ADDRESES} ? join(' ', sort @{$resourceAttributes{$A_R_O365_RES_EMAIL_ADDRESES}}) : "";
-	$resourceMails->{$resName}->{$RES_DISPLAY_NAME_TEXT} = $resourceAttributes{$A_R_O365_RES_DISPLAY_NAME} ? $resourceAttributes{$A_R_O365_RES_DISPLAY_NAME} : "";
-	$resourceMails->{$resName}->{$RES_TYPE_TEXT} = $resourceAttributes{$A_R_O365_RES_TYPE} ? $resourceAttributes{$A_R_O365_RES_TYPE} : "";
-	$resourceMails->{$resName}->{$RES_CAPACITY_TEXT} = $resourceAttributes{$A_R_O365_RES_CAPACITY} ? $resourceAttributes{$A_R_O365_RES_CAPACITY} : "";
-	$resourceMails->{$resName}->{$RES_ADDITIONAL_RESPONSE_TEXT} = $resourceAttributes{$A_R_O365_RES_ADDITIONAL_RESPONSE} ? $resourceAttributes{$A_R_O365_RES_ADDITIONAL_RESPONSE} : "";
-	$resourceMails->{$resName}->{$RES_EXT_MEETING_MSG_TEXT} = $resourceAttributes{$A_R_O365_RES_EXT_MEETING_MSG} ? "1" : "0";
-	$resourceMails->{$resName}->{$RES_ALLOW_CONFLICTS_TEXT} = $resourceAttributes{$A_R_O365_RES_ALLOW_CONFLICTS} ? "1" : "0";
-	$resourceMails->{$resName}->{$RES_BOOKING_WINDOW_TEXT} = $resourceAttributes{$A_R_O365_RES_BOOKING_WINDOW} ? $resourceAttributes{$A_R_O365_RES_BOOKING_WINDOW} : "";
-	$resourceMails->{$resName}->{$RES_PERCENTAGE_ALLOWED_TEXT} = $resourceAttributes{$A_R_O365_RES_PERCENTAGE_ALLOWED} ? $resourceAttributes{$A_R_O365_RES_PERCENTAGE_ALLOWED} : "";
-	$resourceMails->{$resName}->{$RES_ENFORCE_SCHED_HORIZON_TEXT} = $resourceAttributes{$A_R_O365_RES_ENFORCE_SCHED_HORIZON} ? "1" : "0";
-	$resourceMails->{$resName}->{$RES_MAX_CONFLICT_INSTANCES_TEXT} = $resourceAttributes{$A_R_O365_RES_MAX_CONFLICT_INSTANCES} ? $resourceAttributes{$A_R_O365_RES_MAX_CONFLICT_INSTANCES} : "";
-	$resourceMails->{$resName}->{$RES_MAX_DURATION_TEXT} = $resourceAttributes{$A_R_O365_RES_MAX_DURATION} ? $resourceAttributes{$A_R_O365_RES_MAX_DURATION} : "";
-	$resourceMails->{$resName}->{$RES_SCHED_DURING_WORK_HOURS_TEXT} = $resourceAttributes{$A_R_O365_RES_SCHED_DURING_WORK_HOURS} ? "1" : "0";
-	$resourceMails->{$resName}->{$RES_ALL_BOOK_IN_POLICY_TEXT} = $resourceAttributes{$A_R_O365_RES_ALL_BOOK_IN_POLICY} ? "1" : "0";
-	$resourceMails->{$resName}->{$RES_ALL_REQ_IN_POLICY_TEXT} = $resourceAttributes{$A_R_O365_RES_ALL_REQ_IN_POLICY} ? "1" : "0";
-	$resourceMails->{$resName}->{$RES_ALL_REQ_OUT_OF_POLICY_TEXT} = $resourceAttributes{$A_R_O365_RES_ALL_REQ_OUT_OF_POLICY} ? "1" : "0";
-	$resourceMails->{$resName}->{$RES_WORKDAYS_TEXT} = $resourceAttributes{$A_R_O365_RES_WORKDAYS} ? join(' ', sort @{$resourceAttributes{$A_R_O365_RES_WORKDAYS}}) : "";
-	$resourceMails->{$resName}->{$RES_WORKING_HOURS_START_TIME_TEXT} = $resourceAttributes{$A_R_O365_RES_WORKING_HOURS_START_TIME} ? $resourceAttributes{$A_R_O365_RES_WORKING_HOURS_START_TIME} : "";
-	$resourceMails->{$resName}->{$RES_WORKING_HOURS_END_TIME_TEXT} = $resourceAttributes{$A_R_O365_RES_WORKING_HOURS_END_TIME} ? $resourceAttributes{$A_R_O365_RES_WORKING_HOURS_END_TIME} : "";
-	$resourceMails->{$resName}->{$RES_ALLOW_RECURRING_MEETINGS_TEXT} = $resourceAttributes{$A_R_O365_RES_ALLOW_RECURRING_MEETINGS} ? "1" : "0";
-	$resourceMails->{$resName}->{$RES_ADD_ADDITIONAL_RESPONSE_TEXT} = $resourceAttributes{$A_R_O365_RES_ADD_ADDITIONAL_RESPONSE} ? "1" : "0";
+	$resourceMails->{$resName}->{$RES_ALIAS_TEXT}  = $resourceAttributes{$A_R_O365_RES_ALIAS} ? $resourceAttributes{$A_R_O365_RES_ALIAS} : undef;
+	$resourceMails->{$resName}->{$RES_EMAIL_ADDRESES_TEXT} = $resourceAttributes{$A_R_O365_RES_EMAIL_ADDRESES} ? $resourceAttributes{$A_R_O365_RES_EMAIL_ADDRESES} : ();
+	$resourceMails->{$resName}->{$RES_DISPLAY_NAME_TEXT} = $resourceAttributes{$A_R_O365_RES_DISPLAY_NAME} ? $resourceAttributes{$A_R_O365_RES_DISPLAY_NAME} : undef;
+	$resourceMails->{$resName}->{$RES_TYPE_TEXT} = $resourceAttributes{$A_R_O365_RES_TYPE} ? $resourceAttributes{$A_R_O365_RES_TYPE} : undef;
+	$resourceMails->{$resName}->{$RES_CAPACITY_TEXT} = $resourceAttributes{$A_R_O365_RES_CAPACITY} ? $resourceAttributes{$A_R_O365_RES_CAPACITY} : undef;
+	$resourceMails->{$resName}->{$RES_ADDITIONAL_RESPONSE_TEXT} = $resourceAttributes{$A_R_O365_RES_ADDITIONAL_RESPONSE} ? $resourceAttributes{$A_R_O365_RES_ADDITIONAL_RESPONSE} : undef;
+	$resourceMails->{$resName}->{$RES_EXT_MEETING_MSG_TEXT} = $resourceAttributes{$A_R_O365_RES_EXT_MEETING_MSG} ? $JSON::XS::true : $JSON::XS::false;
+	$resourceMails->{$resName}->{$RES_ALLOW_CONFLICTS_TEXT} = $resourceAttributes{$A_R_O365_RES_ALLOW_CONFLICTS} ? $JSON::XS::true : $JSON::XS::false;
+	$resourceMails->{$resName}->{$RES_BOOKING_WINDOW_TEXT} = $resourceAttributes{$A_R_O365_RES_BOOKING_WINDOW} ? $resourceAttributes{$A_R_O365_RES_BOOKING_WINDOW} : undef;
+	$resourceMails->{$resName}->{$RES_PERCENTAGE_ALLOWED_TEXT} = $resourceAttributes{$A_R_O365_RES_PERCENTAGE_ALLOWED} ? $resourceAttributes{$A_R_O365_RES_PERCENTAGE_ALLOWED} : undef;
+	$resourceMails->{$resName}->{$RES_ENFORCE_SCHED_HORIZON_TEXT} = $resourceAttributes{$A_R_O365_RES_ENFORCE_SCHED_HORIZON} ? $JSON::XS::true : $JSON::XS::false;
+	$resourceMails->{$resName}->{$RES_MAX_CONFLICT_INSTANCES_TEXT} = $resourceAttributes{$A_R_O365_RES_MAX_CONFLICT_INSTANCES} ? $resourceAttributes{$A_R_O365_RES_MAX_CONFLICT_INSTANCES} : undef;
+	$resourceMails->{$resName}->{$RES_MAX_DURATION_TEXT} = $resourceAttributes{$A_R_O365_RES_MAX_DURATION} ? $resourceAttributes{$A_R_O365_RES_MAX_DURATION} : undef;
+	$resourceMails->{$resName}->{$RES_SCHED_DURING_WORK_HOURS_TEXT} = $resourceAttributes{$A_R_O365_RES_SCHED_DURING_WORK_HOURS} ? $JSON::XS::true : $JSON::XS::false;
+	$resourceMails->{$resName}->{$RES_ALL_BOOK_IN_POLICY_TEXT} = $resourceAttributes{$A_R_O365_RES_ALL_BOOK_IN_POLICY} ? $JSON::XS::true : $JSON::XS::false;
+	$resourceMails->{$resName}->{$RES_ALL_REQ_IN_POLICY_TEXT} = $resourceAttributes{$A_R_O365_RES_ALL_REQ_IN_POLICY} ? $JSON::XS::true : $JSON::XS::false;
+	$resourceMails->{$resName}->{$RES_ALL_REQ_OUT_OF_POLICY_TEXT} = $resourceAttributes{$A_R_O365_RES_ALL_REQ_OUT_OF_POLICY} ? $JSON::XS::true : $JSON::XS::false;
+	$resourceMails->{$resName}->{$RES_WORKDAYS_TEXT} = $resourceAttributes{$A_R_O365_RES_WORKDAYS} ? $resourceAttributes{$A_R_O365_RES_WORKDAYS} : \@workdays;
+	$resourceMails->{$resName}->{$RES_WORKING_HOURS_START_TIME_TEXT} = $resourceAttributes{$A_R_O365_RES_WORKING_HOURS_START_TIME} ? $resourceAttributes{$A_R_O365_RES_WORKING_HOURS_START_TIME} : undef;
+	$resourceMails->{$resName}->{$RES_WORKING_HOURS_END_TIME_TEXT} = $resourceAttributes{$A_R_O365_RES_WORKING_HOURS_END_TIME} ? $resourceAttributes{$A_R_O365_RES_WORKING_HOURS_END_TIME} : undef;
+	$resourceMails->{$resName}->{$RES_ALLOW_RECURRING_MEETINGS_TEXT} = $resourceAttributes{$A_R_O365_RES_ALLOW_RECURRING_MEETINGS} ? $JSON::XS::true : $JSON::XS::false;
+	$resourceMails->{$resName}->{$RES_ADD_ADDITIONAL_RESPONSE_TEXT} = $resourceAttributes{$A_R_O365_RES_ADD_ADDITIONAL_RESPONSE} ? $JSON::XS::true : $JSON::XS::false;
 
 	my @resDelegates = ();
 	my @resBookInPolicy = ();
@@ -254,10 +257,10 @@ sub processResourceMail {
 		}
 	}
 
-    $resourceMails->{$resName}->{$RES_DELEGATES_TEXT} =  join(' ', sort @resDelegates);
-	$resourceMails->{$resName}->{$RES_BOOK_IN_POLICY_TEXT} = join(' ', sort @resBookInPolicy);
-	$resourceMails->{$resName}->{$RES_REQUEST_IN_POLICY_TEXT} = join(' ', sort @resReqInPolicy);
-	$resourceMails->{$resName}->{$RES_REQUEST_OUT_OF_POLICY_TEXT} = join(' ', sort @resReqOutOfPolicy);
+    $resourceMails->{$resName}->{$RES_DELEGATES_TEXT} =  \@resDelegates;
+	$resourceMails->{$resName}->{$RES_BOOK_IN_POLICY_TEXT} = \@resBookInPolicy;
+	$resourceMails->{$resName}->{$RES_REQUEST_IN_POLICY_TEXT} = \@resReqInPolicy;
+	$resourceMails->{$resName}->{$RES_REQUEST_OUT_OF_POLICY_TEXT} = \@resReqOutOfPolicy;
 }
 
 # input: memberData structure from resource
@@ -282,7 +285,7 @@ sub processResourceMember {
 
 		my $archive = $memberAttributes{$A_UF_O365_ARCHIVE};
 		my $storeAndForward = $memberAttributes{$A_UF_O365_STORE_AND_FORWARD};
-		my $preferedLanguage = $memberAttributes{$A_UF_O365_LANGUAGE};
+		my $preferedLanguage = $memberAttributes{$A_U_F_O365_PREFERRED_LANGUAGE};
 		my @emailsArray = ();
 		if(defined($memberAttributes{$A_U_O365_MAIL_ADDRS})) {
 			@emailsArray = @{$memberAttributes{$A_U_O365_MAIL_ADDRS}};
@@ -293,10 +296,11 @@ sub processResourceMember {
 		unless($users->{$UCO}) {
 			$users->{$UCO}->{$UPN_TEXT} = $UCO . "@" . $domainName;
 			$users->{$UCO}->{$MAIL_FORWARD_TEXT} = $mailForward ? $mailForward : "";
-			$users->{$UCO}->{$ARCHIVE_TEXT} = $archive ? "1" : "0";
-			$users->{$UCO}->{$STORE_AND_FORWARD_TEXT} = $storeAndForward ? "1" : "0";
+			$users->{$UCO}->{$ARCHIVE_TEXT} = $archive ? $JSON::XS::true : $JSON::XS::false;
+			$users->{$UCO}->{$STORE_AND_FORWARD_TEXT} = $storeAndForward ? $JSON::XS::true : $JSON::XS::false;
 			$users->{$UCO}->{$EMAIL_ADDRESSES} = \@emailsArray;
 			$users->{$UCO}->{$PREFERED_LANGUAGE} = $preferedLanguage;
+			$users->{$UCO}->{$TIMEZONE} = "Central Europe Standard Time";
 		}
 }
 
@@ -352,8 +356,8 @@ sub saveUsersToFile {
         $user->{"archive"} = $usersData->{$UCO}->{$ARCHIVE_TEXT};
         $user->{"deliverToMailboxAndForward"} = $usersData->{$UCO}->{$STORE_AND_FORWARD_TEXT};
         $user->{"emailAddresses"} = $usersData->{$UCO}->{$EMAIL_ADDRESSES};
-        $user->{"language"} = $usersData->{$UCO}->{$PREFERED_LANGUAGE};
-        #$user->{"timeZone"} = $usersData->{$UCO}->{$TIMEZONE};
+        $user->{"language"} = $usersData->{$UCO}->{$PREFERED_LANGUAGE} ? $usersData->{$UCO}->{$PREFERED_LANGUAGE} : undef;
+        $user->{"timeZone"} = $usersData->{$UCO}->{$TIMEZONE};
         push @output, $user;
 	}
 
@@ -386,18 +390,6 @@ sub saveGroupsToFile {
     close FILE;
 }
 
-# input: file name for facility id data, facilityId
-# save data about facility id to the file
-sub saveFacilityIdToFile {
-	my $fileName = shift;
-	my $facilityId = shift;
-
-	open FILE, ">$fileName" or die "Cannot open $fileName: $! \n";
-	print FILE $facilityId . "\n";
-
-	close(FILE) or die "Cannot close $fileName: $! \n";
-}
-
 # input: file name for resource mailing lists data, resourceMailsData structure
 # save data about resource mailing lists to the file
 sub saveResourceMailsToFile {
@@ -415,7 +407,7 @@ sub saveResourceMailsToFile {
 		$item->{"Type"} = $resourceMailsData->{$resourceMailName}->{$RES_TYPE_TEXT};
 		$item->{"ResourceCapacity"} = $resourceMailsData->{$resourceMailName}->{$RES_CAPACITY_TEXT};
 		$item->{"AdditionalResponse"} = $resourceMailsData->{$resourceMailName}->{$RES_ADDITIONAL_RESPONSE_TEXT};
-		$item->{"ProcessExternalMeetingMessages "} = $resourceMailsData->{$resourceMailName}->{$RES_EXT_MEETING_MSG_TEXT};
+		$item->{"ProcessExternalMeetingMessages"} = $resourceMailsData->{$resourceMailName}->{$RES_EXT_MEETING_MSG_TEXT};
 		$item->{"AllowConflicts"} = $resourceMailsData->{$resourceMailName}->{$RES_ALLOW_CONFLICTS_TEXT};
 		$item->{"BookingWindowInDays"} = $resourceMailsData->{$resourceMailName}->{$RES_BOOKING_WINDOW_TEXT};
 		$item->{"ConflictPercentageAllowed"} = $resourceMailsData->{$resourceMailName}->{$RES_PERCENTAGE_ALLOWED_TEXT};

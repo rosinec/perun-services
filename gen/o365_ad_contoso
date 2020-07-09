@@ -1,0 +1,22 @@
+#!/usr/bin/perl
+use perunServicesInit;
+use perunServicesUtils;
+
+local $::SERVICE_NAME = "o365_ad_contoso";
+local $::PROTOCOL_VERSION = "3.0.0";
+my $SCRIPT_VERSION = "3.0.0";
+
+perunServicesInit::init;
+my $DIRECTORY = perunServicesInit::getDirectory;
+my $data = perunServicesInit::getDataWithGroups;
+
+#call contoso_ad
+#call contoso_o365
+
+{
+    local @ARGV = ("o365_ad_contoso", $DIRECTORY, $data);
+    do './contoso_ad2';
+    do './contoso_o365';
+}
+
+perunServicesInit::finalize;
