@@ -361,8 +361,7 @@ sub saveUsersToFile {
         push @output, $user;
 	}
 
-	open FILE,">:encoding(UTF-8)","$fileName" or die "Cannot open $fileName: $! \n";
-    binmode FILE, ":utf8";
+	open FILE,">$fileName" or die "Cannot open $fileName: $! \n";
     print FILE JSON::XS->new->utf8->pretty->encode(\@output);
     close FILE;
 }
@@ -384,8 +383,7 @@ sub saveGroupsToFile {
         push @output, $group;
 	}
 
-    open FILE,">:encoding(UTF-8)","$fileName" or die "Cannot open $fileName: $! \n";
-    binmode FILE, ":utf8";
+    open FILE,">$fileName" or die "Cannot open $fileName: $! \n";
     print FILE JSON::XS->new->utf8->pretty->encode(\@output);
     close FILE;
 }
@@ -431,8 +429,7 @@ sub saveResourceMailsToFile {
         push @output, $item;
 	}
 
-    open FILE,">:encoding(UTF-8)","$fileName" or die "Cannot open $fileName: $! \n";
-    binmode FILE, ":utf8";
+    open FILE,">$fileName" or die "Cannot open $fileName: $! \n";
     print FILE JSON::XS->new->utf8->pretty->encode(\@output);
     close FILE;
 }

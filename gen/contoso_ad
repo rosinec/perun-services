@@ -106,11 +106,11 @@ if (!defined($facilityAttributes{$A_F_O365_USED_MAIN_LICENSES})) {
 my $baseDNUsers = "OU=Users,OU=MU,DC=contoso,DC=muni,DC=cz"; #$facilityAttributes{$A_F_BASE_DN};
 my $baseDNGroups = "OU=Groups,OU=MU,DC=contoso,DC=muni,DC=cz"; #$facilityAttributes{$A_F_GROUP_BASE_DN};
 
-open FILE,">:encoding(UTF-8)","$baseDnFileName" or die "Cannot open $baseDnFileName: $! \n";
+open FILE,">$baseDnFileName" or die "Cannot open $baseDnFileName: $! \n";
 print FILE $baseDNUsers;
 close(FILE);
 
-open FILE,">:encoding(UTF-8)","$baseDnFileNameGroups" or die "Cannot open $baseDnFileNameGroups: $! \n";
+open FILE,">$baseDnFileNameGroups" or die "Cannot open $baseDnFileNameGroups: $! \n";
 print FILE $baseDNGroups;
 close(FILE);
 
@@ -186,9 +186,9 @@ sub processMembers() {
 				} else {
 					$groups->{"licenses"}->{$mainLicenceKey}->{$MEMBERS}->{"CN=".$memberAttributes{$A_LOGIN}.",".$baseDNUsers} = 1;
 				}
-				$users->{$login}->{$CLOUD_EXTENSION_A_2} = $JSON::XS::true;
+				$users->{$login}->{$CLOUD_EXTENSION_A_2} = "TRUE";
 			} else {
-				$users->{$login}->{$CLOUD_EXTENSION_A_2} = $JSON::XS::false;
+				$users->{$login}->{$CLOUD_EXTENSION_A_2} = "FALSE";
 			}
 		}
 	}
@@ -294,7 +294,7 @@ for my $key (@ouKeys) {
 	push @output_ous, $output_ou;
 }
 
-open FILE,">:encoding(UTF-8)","$fileNameOus" or die "Cannot open $fileNameOus: $! \n";
+open FILE,">$fileNameOus" or die "Cannot open $fileNameOus: $! \n";
 print FILE JSON::XS->new->utf8->pretty->encode(\@output_ous);
 close FILE;
 
@@ -322,7 +322,7 @@ for my $ouKey (@groupOus) {
 			$output_group->{"samAccountName"} = $groups->{$ouKey}->{$key}->{$A_G_R_AD_NAME} . "_" . $ouKey;
 			$output_group->{"displayName"} = $groups->{$ouKey}->{$key}->{$A_G_R_AD_DISPLAY_NAME};
 			$output_group->{"MailNickName"} = $groups->{$ouKey}->{$key}->{$A_G_R_AD_NAME};
-			$output_group->{"extensionAttribute1"} = $JSON::XS::true;			
+			$output_group->{"extensionAttribute1"} = "TRUE";			
             
 			my $msExchVal = $groups->{$ouKey}->{$key}->{$A_G_R_msExchRequireAuthToSendTo};
 			$output_group->{"msExchRequireAuthToSendTo"} = ((defined $msExchVal and $msExchVal == 1) ? $JSON::XS::true : $JSON::XS::false);
@@ -368,7 +368,7 @@ for my $ouKey (@groupOus) {
 	}
     $output_groups_ou->{$ouKey} = \@output_groups;
 }
-open FILE,">:encoding(UTF-8)","$fileNameGroups" or die "Cannot open $fileNameGroups: $! \n";
+open FILE,">$fileNameGroups" or die "Cannot open $fileNameGroups: $! \n";
 print FILE JSON::XS->new->utf8->pretty->encode($output_groups_ou);
 close FILE;
 
@@ -458,7 +458,7 @@ for my $login (@logins) {
     $output_user->{"msDS-cloudExtensionAttribute1"} = $login . '@' . $facilityAttributes{$A_F_AZURE_DOMAIN};
     $output_user->{"msDS-cloudExtensionAttribute2"} = $users->{$login}->{$CLOUD_EXTENSION_A_2};
 
-	$output_user->{"msDS-cloudExtensionAttribute3"} = $JSON::XS::true;
+	$output_user->{"msDS-cloudExtensionAttribute3"} = "TRUE";
 	$output_user->{"userAccountControl"} = $facilityAttributes{$A_F_UAC};
 
 	# Encode each user certificate into base64 as userCertificate attribute
@@ -473,7 +473,7 @@ for my $login (@logins) {
 	push @output_users, $output_user;
 }
 
-open FILE,">:encoding(UTF-8)","$fileNameUsers" or die "Cannot open $fileNameUsers: $! \n";
+open FILE,">$fileNameUsers" or die "Cannot open $fileNameUsers: $! \n";
 print FILE JSON::XS->new->utf8->pretty->encode(\@output_users);
 close FILE or die "Cannot close $fileNameUsers: $! \n";
 
