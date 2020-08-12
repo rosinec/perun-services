@@ -31,7 +31,7 @@ print "Running contoso_o365 sn: " . $SERVICE_NAME . "\n";
 # CONSTANTS AND DEFINITIONS
 #-------------------------------------------------------------------------
 
-our $A_GR_AD_NAME;                           *A_GR_AD_NAME =                           \'urn:perun:group_resource:attribute-def:def:adName';
+our $A_GR_AD_NAME;                           *A_GR_AD_NAME =                           \'urn:perun:group:attribute-def:def:adName:o365mu';
 our $A_F_DOMAIN_NAME;                        *A_F_DOMAIN_NAME =                        \'urn:perun:facility:attribute-def:def:o365DomainName';
 our $A_MR_O365_SEND_AS;                      *A_MR_O365_SEND_AS =                      \'urn:perun:member_group:attribute-def:def:o365SendAs';
 our $A_U_O365_MAIL_ADDRS;                    *A_U_O365_MAIL_ADDRS =                    \'urn:perun:user:attribute-def:def:o365EmailAddresses:mu';
@@ -42,6 +42,7 @@ our $A_UF_O365_ARCHIVE;                      *A_UF_O365_ARCHIVE =               
 our $A_UF_O365_STORE_AND_FORWARD;            *A_UF_O365_STORE_AND_FORWARD =            \'urn:perun:user_facility:attribute-def:def:o365MailStoreAndForward';
 our $A_UF_O365_LICENCE;                      *A_UF_O365_LICENCE =                      \'urn:perun:user_facility:attribute-def:def:o365Licence';
 our $A_U_F_O365_PREFERRED_LANGUAGE;          *A_U_F_O365_PREFERRED_LANGUAGE =          \'urn:perun:user_facility:attribute-def:def:o365PreferredLanguage';
+our $A_F_O365_PREFERRED_LANGUAGE_DEFAULT;    *A_F_O365_PREFERRED_LANGUAGE_DEFAULT =    \'urn:perun:facility:attribute-def:def:o365PreferredLanguageDefault';
 our $A_R_IS_FOR_O365_GROUP;                  *A_R_IS_FOR_O365_GROUP =                  \'urn:perun:resource:attribute-def:def:isForO365Group';
 our $A_F_ID;                                 *A_F_ID =                                 \'urn:perun:facility:attribute-def:core:id';
 our $A_R_O365_RES_NAME;                      *A_R_O365_RES_NAME =                      \'urn:perun:resource:attribute-def:def:o365ResourceName';
@@ -285,7 +286,7 @@ sub processResourceMember {
 
 		my $archive = $memberAttributes{$A_UF_O365_ARCHIVE};
 		my $storeAndForward = $memberAttributes{$A_UF_O365_STORE_AND_FORWARD};
-		my $preferedLanguage = $memberAttributes{$A_U_F_O365_PREFERRED_LANGUAGE};
+		my $preferedLanguage = $memberAttributes{$A_U_F_O365_PREFERRED_LANGUAGE} ? $memberAttributes{$A_U_F_O365_PREFERRED_LANGUAGE} : $memberAttributes{$A_F_O365_PREFERRED_LANGUAGE_DEFAULT};
 		my @emailsArray = ();
 		if(defined($memberAttributes{$A_U_O365_MAIL_ADDRS})) {
 			@emailsArray = @{$memberAttributes{$A_U_O365_MAIL_ADDRS}};
@@ -294,7 +295,8 @@ sub processResourceMember {
 		}
 
 		unless($users->{$UCO}) {
-			$users->{$UCO}->{$UPN_TEXT} = $UCO . "@" . $domainName;
+			# FIXME Adrian pre idm-test contoso
+			$users->{$UCO}->{$UPN_TEXT} = $UCO . "@" . "contosomuni.onmicrosoft.com";#$domainName;
 			$users->{$UCO}->{$MAIL_FORWARD_TEXT} = $mailForward ? $mailForward : "";
 			$users->{$UCO}->{$ARCHIVE_TEXT} = $archive ? $JSON::XS::true : $JSON::XS::false;
 			$users->{$UCO}->{$STORE_AND_FORWARD_TEXT} = $storeAndForward ? $JSON::XS::true : $JSON::XS::false;
@@ -311,6 +313,7 @@ sub processGroup {
 
 	my %groupAttributes = attributesToHash $groupData->getAttributes;
 	my $groupADName = $groupAttributes{$A_GR_AD_NAME};
+
 
 	if($groupADName) {
 		#all groups for mu should have specific part of name

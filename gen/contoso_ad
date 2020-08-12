@@ -46,10 +46,10 @@ our $A_F_O365_USED_MAIN_LICENSES; *A_F_O365_USED_MAIN_LICENSES = \'urn:perun:fac
 # OU, Group
 our $A_R_OU_NAME;  *A_R_OU_NAME = \'urn:perun:resource:attribute-def:def:adOuName';
 
-our $A_G_R_AD_NAME;  *A_G_R_AD_NAME = \'urn:perun:group_resource:attribute-def:def:adName';
-our $A_G_R_AD_DISPLAY_NAME;  *A_G_R_AD_DISPLAY_NAME = \'urn:perun:group_resource:attribute-def:def:adDisplayName';
+our $A_G_R_AD_NAME;  *A_G_R_AD_NAME = \'urn:perun:group:attribute-def:def:adName:o365mu';
+our $A_G_R_AD_DISPLAY_NAME;  *A_G_R_AD_DISPLAY_NAME = \'urn:perun:group:attribute-def:def:adDisplayName:o365mu';
 our $A_G_R_msExchRequireAuthToSendTo;  *A_G_R_msExchRequireAuthToSendTo = \'urn:perun:group_resource:attribute-def:def:adRequireSenderAuthenticationEnabled';
-our $A_G_R_AD_EMAIL_ADDRESSES;  *A_G_R_AD_EMAIL_ADDRESSES = \'urn:perun:group_resource:attribute-def:def:o365EmailAddresses:mu';
+our $A_G_R_AD_EMAIL_ADDRESSES;  *A_G_R_AD_EMAIL_ADDRESSES = \'urn:perun:group:attribute-def:def:o365EmailAddresses:o365mu';
 
 # User/member attributes
 our $A_FIRST_NAME;  *A_FIRST_NAME = \'urn:perun:user:attribute-def:core:firstName';
@@ -59,6 +59,7 @@ our $A_U_MAILS;  *A_U_MAILS = \'urn:perun:user:attribute-def:def:o365EmailAddres
 our $A_LOGIN; *A_LOGIN = \'urn:perun:user_facility:attribute-def:virt:login';
 our $A_M_G_O365_SEND_ON_BEHALF; *A_M_G_O365_SEND_ON_BEHALF = \'urn:perun:member_group:attribute-def:def:o365SendOnBehalf';
 our $A_U_F_O365_PREFERRED_LANGUAGE; *A_U_F_O365_PREFERRED_LANGUAGE = \'urn:perun:user_facility:attribute-def:def:o365PreferredLanguage';
+our $A_F_O365_PREFERRED_LANGUAGE_DEFAULT;  *A_F_O365_PREFERRED_LANGUAGE_DEFAULT =  \'urn:perun:facility:attribute-def:def:o365PreferredLanguageDefault';
 our $A_U_F_O365_LICENCE; *A_U_F_O365_LICENCE = \'urn:perun:user_facility:attribute-def:def:o365Licence';
 our $A_MEMBER_STATUS; *A_MEMBER_STATUS = \'urn:perun:member:attribute-def:core:status';
 
@@ -103,6 +104,7 @@ if (!defined($facilityAttributes{$A_F_O365_USED_MAIN_LICENSES})) {
 #
 # PRINT BASE_DN FILEs
 #
+##### FIXME PREPISAT
 my $baseDNUsers = "OU=Users,OU=MU,DC=contoso,DC=muni,DC=cz"; #$facilityAttributes{$A_F_BASE_DN};
 my $baseDNGroups = "OU=Groups,OU=MU,DC=contoso,DC=muni,DC=cz"; #$facilityAttributes{$A_F_GROUP_BASE_DN};
 
@@ -170,7 +172,7 @@ sub processMembers() {
 			$users->{$login}->{$A_FIRST_NAME} = $memberAttributes{$A_FIRST_NAME};
 			$users->{$login}->{$A_LAST_NAME} = $memberAttributes{$A_LAST_NAME};
 			$users->{$login}->{$A_U_MAILS} = $memberAttributes{$A_U_MAILS};
-			$users->{$login}->{$A_U_F_O365_PREFERRED_LANGUAGE} = $memberAttributes{$A_U_F_O365_PREFERRED_LANGUAGE};
+			$users->{$login}->{$A_U_F_O365_PREFERRED_LANGUAGE} = $memberAttributes{$A_U_F_O365_PREFERRED_LANGUAGE} ? $memberAttributes{$A_U_F_O365_PREFERRED_LANGUAGE} : $memberAttributes{$A_F_O365_PREFERRED_LANGUAGE_DEFAULT};
 			my @certificates = values %{$memberAttributes{$A_U_CERTIFICATES}};
 			$users->{$login}->{$A_U_CERTIFICATES} = \@certificates;
 
@@ -212,7 +214,6 @@ sub processGroups {
 		if(defined $groupAttributes{$A_G_R_AD_NAME}) {
 			# create group entry
 			my $key = "CN=".$groupAttributes{$A_G_R_AD_NAME}."_group.muni.cz,OU=".$ouName.",".$baseDNGroups;
-
 			$groups->{$ouName}->{$key}->{$A_G_R_AD_NAME} = $groupAttributes{$A_G_R_AD_NAME};
 			$groups->{$ouName}->{$key}->{$A_G_R_AD_DISPLAY_NAME} = $groupAttributes{$A_G_R_AD_DISPLAY_NAME};
 			$groups->{$ouName}->{$key}->{$A_G_R_msExchRequireAuthToSendTo} = $groupAttributes{$A_G_R_msExchRequireAuthToSendTo};
@@ -243,8 +244,8 @@ sub processGroups {
 			# create group entry
 			my $key = "CN=O365Lic_" . $mainLicenceName . "_" . $groupAttributes{$A_G_R_AD_NAME} . "_group.muni.cz,OU=" . $ouName . "," . $baseDNGroups;
 
-			$groups->{$ouName}->{$key}->{$A_G_R_AD_NAME} =			"O365Lic_" . $mainLicenceName . "_" . $groupAttributes{$A_G_R_AD_NAME};
-			$groups->{$ouName}->{$key}->{$A_G_R_AD_DISPLAY_NAME} =	"O365Lic_" . $mainLicenceName . "_" . $groupAttributes{$A_G_R_AD_DISPLAY_NAME};
+			$groups->{$ouName}->{$key}->{$A_G_R_AD_NAME} =				"O365Lic_" . $mainLicenceName . "_" . $groupAttributes{$A_G_R_AD_NAME};
+			$groups->{$ouName}->{$key}->{$A_G_R_AD_DISPLAY_NAME} =		"O365Lic_" . $mainLicenceName . "_" . $groupAttributes{$A_G_R_AD_DISPLAY_NAME};
 		}
 
 		# resolve groups members
@@ -289,7 +290,7 @@ my @ouKeys = sort keys %{$ous};
 for my $key (@ouKeys) {
     my $output_ou;
 	# we create OUs only in groups section !!
-	$output_ou->{"dn"} = "OU=" . $key . "," . $baseDNGroups;
+	$output_ou->{"distinguishedName"} = "OU=" . $key . "," . $baseDNGroups;
 	$output_ou->{"ou"} = $key;
 	push @output_ous, $output_ou;
 }
@@ -306,10 +307,9 @@ close FILE;
 #############################
 
 my @groupOus = sort keys %{$ous};
-my $output_groups_ou = {};
+my @output_groups = ();
 for my $ouKey (@groupOus) {
 
-    my @output_groups;
 	if (defined $groups->{$ouKey}) {
 
 		my $ouGroups = $groups->{$ouKey};
@@ -317,11 +317,14 @@ for my $ouKey (@groupOus) {
 		for my $key (@groupKeys) {
 
             my $output_group;
-            $output_group->{"DN"} = $key;
+            $output_group->{"distinguishedName"} = $key;
 			$output_group->{"CN"} = $groups->{$ouKey}->{$key}->{$A_G_R_AD_NAME} . "_group.muni.cz";
 			$output_group->{"samAccountName"} = $groups->{$ouKey}->{$key}->{$A_G_R_AD_NAME} . "_" . $ouKey;
 			$output_group->{"displayName"} = $groups->{$ouKey}->{$key}->{$A_G_R_AD_DISPLAY_NAME};
 			$output_group->{"MailNickName"} = $groups->{$ouKey}->{$key}->{$A_G_R_AD_NAME};
+			if (defined $groups->{$ouKey}->{$key}->{$A_G_R_AD_EMAIL_ADDRESSES}){
+				$output_group->{"mail"} = $groups->{$ouKey}->{$key}->{$A_G_R_AD_EMAIL_ADDRESSES};
+			}
 			$output_group->{"extensionAttribute1"} = "TRUE";			
             
 			my $msExchVal = $groups->{$ouKey}->{$key}->{$A_G_R_msExchRequireAuthToSendTo};
@@ -344,7 +347,9 @@ for my $ouKey (@groupOus) {
 					}
 				}
 			}
-            $output_group->{"proxyAddresses"} = \@adresses;
+			if ($first eq 1){
+            	$output_group->{"proxyAddresses"} = \@adresses;
+			}
 
 			# print first of ProxyAddresses to mail too:
 			if ($mail) {
@@ -366,10 +371,9 @@ for my $ouKey (@groupOus) {
 		}
 
 	}
-    $output_groups_ou->{$ouKey} = \@output_groups;
 }
 open FILE,">$fileNameGroups" or die "Cannot open $fileNameGroups: $! \n";
-print FILE JSON::XS->new->utf8->pretty->encode($output_groups_ou);
+print FILE JSON::XS->new->utf8->pretty->encode(\@output_groups);
 close FILE;
 
 ##################################
@@ -389,7 +393,7 @@ for my $login (@logins) {
 	my $samAccountName = $login;
 
 	# print attributes, which are never empty
-	$output_user->{"DN"} = $users->{$login}->{"DN"};
+	$output_user->{"distinguishedName"} = $users->{$login}->{"DN"};
 	$output_user->{"cn"} = $login;
 
 	# skip attributes which are empty and LDAP can't handle it (FIRST_NAME, EMAIL)
