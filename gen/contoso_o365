@@ -146,7 +146,7 @@ foreach my $resource ( $data->getChildElements ) {
 
 my $usersFileName = "$DIRECTORY/$SERVICE_NAME" . "_users.json";
 my $groupsFileName = "$DIRECTORY/$SERVICE_NAME" . "_groups.json";
-my $resourceMailsFileName = "$DIRECTORY/$SERVICE_NAME" . "_resource-mails.json";
+my $resourceMailsFileName = "$DIRECTORY/$SERVICE_NAME" . "_resources.json";
 
 saveUsersToFile $usersFileName, $users;
 saveGroupsToFile $groupsFileName, $groups;
